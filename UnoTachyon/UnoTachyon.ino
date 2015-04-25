@@ -1,19 +1,3 @@
-
-//-----------------------------------------------------------------------------
-// MurmurHash3 was written by Austin Appleby, and is placed in the public
-// domain. The author hereby disclaims copyright to this source code.
-
-// Note - The x86 and x64 versions do _not_ produce the same results, as the
-// algorithms are optimized for their respective platforms. You can still
-// compile and run any of them on any platform, but your performance with the
-// non-native version will be less than optimal.
-
-//-----------------------------------------------------------------------------
-// Platform-specific functions and macros
-
-// Microsoft Visual Studio
-
-
 #include "MurmurHash2.h"
 #include <stdint.h>
 
@@ -26,7 +10,7 @@
 // storage
 uint8_t bins[BINS];
 
-int CountLeadingZeros(uint32_t hash, uint8_t maxCount)
+int CountTrailingZeros(uint32_t hash, uint8_t maxCount)
 {
 	uint32_t seeker = 1;
 	int counter = 0;
@@ -51,7 +35,7 @@ void add(String newInput)
 	uint64_t hash = MurmurHash64A(input, newInput.length(), HLL_HASH_SEED);
 
 	uint8_t bindex = GetBinIndex(hash);
-	uint8_t firstOne = CountLeadingZeros(hash >> BIN_BITS, 64 - BIN_BITS) + 1;
+	uint8_t firstOne = CountTrailingZeros(hash >> BIN_BITS, 64 - BIN_BITS) + 1;
 
 	bins[bindex] = max(bins[bindex], firstOne);
 

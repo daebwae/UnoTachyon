@@ -1,76 +1,41 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO.Ports;
-using System.Linq;
-using System.Text.RegularExpressions;
+using HLLFeeder.DataSource;
 
 namespace HLLFeeder
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            var comPort = new SerialPort("COM12", 115200);
+            using (var arduino = new ArduinoCom("COM4", 115200))
+            { 
+                var guidSource = new GuidDataSource();
+                var medianError = new MedianError(); 
 
-            
-            comPort.Open();
+                foreach (var guid in guidSource)
+                {
+                    arduino.AddUniqueItem(guid);
 
+                    if (guidSource.UniqueItemsCount < 500) 
+                        continue;
 
-            int lastOutput = 0;
-            string received = "";
+                    var estimate = arduino.GetEstimate();
+                    var actual = guidSource.UniqueItemsCount;
+                    medianError.Add(actual,estimate);
 
-            var words = Texts.dalloway.Split().Select(w => Regex.Replace(w, @"\W", "")).Distinct();
-            int actual = 0; 
+                    PrintStatus(estimate, actual, medianError.GetMedian());
+                }
 
-            var errors = new List<double>();
-            int i = 1000; 
-
-            foreach (var word in words)
-            {
-                if(word == string.Empty)
-                    continue;
-
-                i--; 
-                actual++; 
-
-                comPort.Write(word);
-                comPort.Write("\n");
-                received = comPort.ReadTo("\n");
-
-            
-            
-                
-
-                if(i > 0)
-                    continue;
-
-                i++;
-
-
-                var estimate = double.Parse(received, CultureInfo.InvariantCulture);
-
-                var error = Math.Abs(actual - estimate) / actual;
-
-                errors.Add(error);
-                errors.Sort();
-
-                Console.WriteLine("HLL: {0}", received);
-                Console.WriteLine("Actual: {0}", actual);
-                Console.WriteLine("Average Relative Error: {0}", errors[errors.Count / 2]);
-                Console.WriteLine();
-                
-                
             }
-
-            comPort.Write("#ESTIMATE#\n");
-            received = comPort.ReadTo("\n");
-            Console.WriteLine("HLL: {0}", received);
-            Console.WriteLine("Actual: {0}", actual);
-            Console.WriteLine();
-            comPort.Close();
-            
             Console.ReadKey();
+        }
+
+        private static void PrintStatus(double estimate, double actual, double medianError)
+        {
+            Console.WriteLine(@"HLL: {0}", estimate);
+            Console.WriteLine(@"Actual: {0}", actual);
+            Console.WriteLine(@"Average Relative Error: {0}", medianError);
+            Console.WriteLine();
         }
     }
 }
